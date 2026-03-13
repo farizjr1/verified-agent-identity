@@ -1,47 +1,35 @@
-name: Billions Network Agent Verification
+name: Verify Human Identity
+
 on:
   workflow_dispatch:
-    inputs:
-      agent_name:
-        description: 'Demvooo Agent'
-        required: true
-        default: 'Demvooo'
-      agent_description:
-        description: 'Demvoo Agent'
-        required: true
-        default: 'Demvooo AI Agent'
 
 jobs:
-  verify-identity:
+  verify:
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-      CI: true 
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-      - name: Setup Node.js 24
-        uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: '24'
+          node-version: "20"
 
-      - name: Install Dependencies
+      - name: Install ClawHub
+        run: npm install -g clawhub
+
+      - name: Install Verified Agent Identity
+        run: clawhub install verified-agent-identity
+
+      - name: Install dependencies
         run: |
           cd scripts
           npm install
-      - name: Execute Verification
-        env:
-          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-          AGENT_NAME: ${{ github.event.inputs.agent_name }}
-          AGENT_DESC: ${{ github.event.inputs.agent_description }}
+
+      - name: Create Ethereum Identity
+        run: node scripts/createNewEthereumIdentity.js
+
+      - name: Link Human to Agent
         run: |
-          cd scripts
-          
-          echo "Step 1: Creating Identity..."
-          yes | node createNewEthereumIdentity.js || echo "Identity already exists"
-          CHALLENGE=$(jq -n --arg name "$AGENT_NAME" --arg desc "$AGENT_DESC" '{name: $name, description: $desc}')
-          echo "Challenge Data: $CHALLENGE"
-          echo "Step 2: Linking Agent..."
-          printf "$AGENT_NAME\n$AGENT_DESC\n" | node manualLinkHumanToAgent.js --challenge "$CHALLENGE"
+          node scripts/manualLinkHumanToAgent.js --challenge '{"name":"Demvooo Ai Agent","description":"Demvooo AI Agent"}'
