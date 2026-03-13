@@ -1,41 +1,47 @@
-name: Verify Human Identity
-
+name: Billions Network Agent Verification
 on:
-  workflow_dispatch:
-    inputs:
-      agent_name:
-        description: 'finder'
-        required: true
-        default: 'finder'
-      agent_description:
-        description: 'finder'
-        required: true
-        default: 'finder AI Agent'
+  workflow_dispatch:
+    inputs:
+      agent_name:
+        description: 'Farizjr Agent'
+        required: true
+        default: 'FarizJr'
+      agent_description:
+        description: 'FarizJr Agent'
+        required: true
+        default: 'Fariz Jr AI Agent'
 
 jobs:
-  verify:
-    runs-on: ubuntu-latest
+  verify-identity:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      CI: true 
 
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
 
-      - name: Step 1 - Install ClawHub skill
-        run: npx clawhub@latest install verified-agent-identity
-
-      - name: Install script dependencies
-        run: |
-      		cd scripts
-      		npm install
-
-      - name: Step 2 - Create new Ethereum Identity
-        run: node scripts/createNewEthereumIdentity.js
-
-      - name: Step 3 - Link Human to Agent
-        run: |
-          node scripts/manualLinkHumanToAgent.js --challenge '{"name": "farizjr1", "description": "FarizJr AI Agent"}'
+      - name: Install Dependencies
+        run: |
+          cd scripts
+          npm install
+      - name: Execute Verification
+        env:
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          AGENT_NAME: ${{ github.event.inputs.agent_name }}
+          AGENT_DESC: ${{ github.event.inputs.agent_description }}
+        run: |
+          cd scripts
+          
+          echo "Step 1: Creating Identity..."
+          yes | node createNewEthereumIdentity.js || echo "Identity already exists"
+          CHALLENGE=$(jq -n --arg name "$AGENT_NAME" --arg desc "$AGENT_DESC" '{name: $name, description: $desc}')
+          echo "Challenge Data: $CHALLENGE"
+          echo "Step 2: Linking Agent..."
+          printf "$AGENT_NAME\n$AGENT_DESC\n" | node manualLinkHumanToAgent.js --challenge "$CHALLENGE"
